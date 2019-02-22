@@ -1,7 +1,7 @@
 
-#include "grid.h"
 #include <stdlib.h>
 #include <string.h>
+#include "grid.h"
 
 struct grid_st {
   void ***data;  /* [row][col]->cell */
@@ -41,18 +41,18 @@ void FreeGrid(grid_t *grid)
   free(grid);
 }
 
-void *GetGridCell(grid_t const *grid, size_t row, size_t col)
+void *GetGridCell(grid_t const *grid, point_t const *pos)
 {
-  if (!grid) return NULL;
-  if (row >= grid->height || col >= grid->width) return NULL;
-  return grid->data[row][col];
+  if (!grid || !pos) return NULL;
+  if (pos->row >= grid->height || pos->col >= grid->width) return NULL;
+  return grid->data[pos->row][pos->col];
 }
 
-bool_t SetGridCell(grid_t *grid, size_t row, size_t col, void *cell)
+bool_t SetGridCell(grid_t *grid, point_t const *pos, void *cell)
 {
   if (!grid) return false;
-  if (row >= grid->height || col >= grid->width) return false;
-  grid->data[row][col] = cell;
+  if (pos->row >= grid->height || pos->col >= grid->width) return NULL;
+  grid->data[pos->row][pos->col] = cell;
   return true;
 }
 
@@ -91,6 +91,7 @@ void ClearGridDestroyCell(grid_t *grid, void (*dtor)(void *))
   {
     for (j = 0; j < grid->width; j++)
     {
+      if (!grid->data[i][j]) continue;
       dtor(grid->data[i][j]);
       grid->data[i][j] = NULL;
     }
