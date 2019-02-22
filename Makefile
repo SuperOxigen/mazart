@@ -14,11 +14,15 @@ clean:
 
 COMMON_HEADERS = src/common.h
 
-MAZART_OBJS = obj/grid.o
+MAZART_OBJS = obj/grid.o obj/maze.o
 
 obj/grid.o: src/grid.c src/grid.h $(COMMON_HEADERS)
 	@echo -n "[OBJ ]"
 	$(CC) $(CFLAGS) -c -o obj/grid.o src/grid.c
+
+obj/maze.o: src/maze.c src/maze.h $(COMMON_HEADERS)
+	@echo -n "[OBJ ]"
+	$(CC) $(CFLAGS) -c -o obj/maze.o src/maze.c
 
 bin/mazart.exe: src/main.c $(MAZART_OBJS)
 	@echo -n "[ CC ]"
