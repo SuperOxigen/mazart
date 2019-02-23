@@ -8,6 +8,8 @@ typedef struct maze_cell_st maze_cell_t;
 
 typedef size_t maze_flag_t;
 #define MAX_MAZE_FLAG 8
+typedef size_t maze_property_t;
+#define MAX_MAZE_PROPERTY 8
 
 /* - - Maze - - */
 maze_t *CreateMaze(size_t height, size_t width, point_t const *start, point_t const *end);
@@ -35,8 +37,16 @@ size_t ComputeMazePath(
 
 /* - - Maze Cell - - */
 void GetMazeCellPosition(maze_cell_t const *cell, point_t *pos);
+
+/* Flags */
 bool_t GetMazeCellFlag(maze_cell_t const *cell, maze_flag_t flag);
 void SetMazeCellFlag(maze_cell_t *cell, maze_flag_t flag, bool_t value);
+
+/* Properties */
+int64_t GetMazeCellProperty(maze_cell_t const *cell, maze_property_t property);
+void SetMazeCellProperty(maze_cell_t *cell, maze_property_t property, int64_t value);
+void IncMazeCellProperty(maze_cell_t *cell, maze_property_t property);
+void DecMazeCellProperty(maze_cell_t *cell, maze_property_t property);
 
 /* neighbours must be large enough to fit 4 points */
 size_t GetMazeCellNeighbourPoints(maze_cell_t const *cell, point_t *neightbours);

@@ -26,6 +26,8 @@ struct maze_cell_st {
   maze_cell_t *right;
   /* Flags */
   bool_t flags[MAX_MAZE_FLAG];
+  /* Properties */
+  int64_t properties[MAX_MAZE_PROPERTY];
   /* Private Flags*/
   bool_t visited;
 };
@@ -296,6 +298,30 @@ void SetMazeCellFlag(maze_cell_t *cell, maze_flag_t flag, bool_t value)
 {
   if (!cell || flag >= MAX_MAZE_FLAG) return;
   cell->flags[flag] = value;
+}
+
+int64_t GetMazeCellProperty(maze_cell_t const *cell, maze_property_t property)
+{
+  if (!cell || property >= MAX_MAZE_PROPERTY) return 0;
+  return cell->properties[property];
+}
+
+void SetMazeCellProperty(maze_cell_t *cell, maze_property_t property, int64_t value)
+{
+  if (!cell || property >= MAX_MAZE_PROPERTY) return;
+  cell->properties[property] = value;
+}
+
+void IncMazeCellProperty(maze_cell_t *cell, maze_property_t property)
+{
+  if (!cell || property >= MAX_MAZE_PROPERTY) return;
+  cell->properties[property]++;
+}
+
+void DecMazeCellProperty(maze_cell_t *cell, maze_property_t property)
+{
+  if (!cell || property >= MAX_MAZE_PROPERTY) return;
+  cell->properties[property]--;
 }
 
 size_t GetMazeCellNeighbourPoints(maze_cell_t const *cell, point_t *neightbours)
