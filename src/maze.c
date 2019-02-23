@@ -324,15 +324,15 @@ void DecMazeCellProperty(maze_cell_t *cell, maze_property_t property)
   cell->properties[property]--;
 }
 
-size_t GetMazeCellNeighbourPoints(maze_cell_t const *cell, point_t *neightbours)
+size_t GetMazeCellNeighbourPoints(maze_cell_t const *cell, point_t *neighbours)
 {
   size_t i;
-  if (!cell || !neightbours) return 0;
+  if (!cell || !neighbours) return 0;
   i = 0;
-  if (cell->up) assign_point(&cell->up->pos, &neightbours[i++]);
-  if (cell->down) assign_point(&cell->down->pos, &neightbours[i++]);
-  if (cell->left) assign_point(&cell->left->pos, &neightbours[i++]);
-  if (cell->right) assign_point(&cell->right->pos, &neightbours[i++]);
+  if (cell->up) assign_point(&cell->up->pos, &neighbours[i++]);
+  if (cell->down) assign_point(&cell->down->pos, &neighbours[i++]);
+  if (cell->left) assign_point(&cell->left->pos, &neighbours[i++]);
+  if (cell->right) assign_point(&cell->right->pos, &neighbours[i++]);
   return i;
 }
 

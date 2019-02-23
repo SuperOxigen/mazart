@@ -20,6 +20,7 @@ typedef struct {
   /* Default color */
   rgb_t default_cell_color;
   rgb_t default_wall_color;
+  rgb_t default_conn_color;
   rgb_t default_border_color;
   rgb_t default_path_color;
 } maze_image_config_t;
@@ -28,8 +29,12 @@ void DefaultMazeImageConfig(maze_image_config_t *config);
 
 typedef struct maze_image_st maze_image_t;
 
-maze_image_t *CreateMazeImage(maze_t const *maze, maze_image_config_t const *config);
+maze_image_t *CreateMazeImage(
+  maze_t const *maze, maze_image_config_t const *config);
 void FreeMazeImage(maze_image_t *image);
+
+size_t MazeImageWidth(maze_image_t const *image);
+size_t MazeImageHeight(maze_image_t const *image);
 
 void DrawPathOnMazeImage(
   maze_image_t *image,
