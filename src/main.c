@@ -5,6 +5,7 @@
 #include "common.h"
 #include "grid.h"
 #include "maze.h"
+#include "maze_image.h"
 
 static size_t const kWidth = 15;
 static size_t const kHeight = 8;
@@ -102,7 +103,7 @@ int main(int argc __unused, char **argv __unused)
   point_t *path;
   size_t path_length;
   maze_t *maze;
-  grid_t *image;
+  maze_image_t *image;
   srand(5);
   printf("Creating Maze\n");
   maze = CreateMaze(kHeight, kWidth, &kStart, &kEnd);
@@ -112,13 +113,10 @@ int main(int argc __unused, char **argv __unused)
   printf("Path found in %lu steps\n", path_length);
 
   printf("Creating image\n");
-  image = CreateGrid(kHeight * 2 + 1, kWidth * 2 + 1);
-  fill_image(image, "X");
-  draw_maze(maze, image, GetMazeStartCell(maze));
-  // draw_path(image, path, path_length);
-  print_image(image);
+  image = CreateMazeImage(maze, NULL);
+
+  FreeMazeImage(image);
   FreeMaze(maze);
-  FreeGrid(image);
 
 
   return 0;
