@@ -1,7 +1,7 @@
 # Maze-Art - Makefile
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c17
+CFLAGS = -Wall -Wextra -std=c17 -g
 
 .PHONY: all clean
 

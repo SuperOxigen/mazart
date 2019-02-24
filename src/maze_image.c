@@ -88,6 +88,8 @@ static inline void GetConnColor(maze_image_t const *image, maze_cell_t const *a,
   *color = image->config.default_conn_color;
 }
 
+static bool_t PositionsAreAdjacent(point_t const *a, point_t const *b);
+
 /* - - Maze Image API - - */
 
 maze_image_t *CreateMazeImage(maze_t const *maze, maze_image_config_t const *config)
@@ -140,7 +142,65 @@ size_t MazeImageHeight(maze_image_t const *image)
 void DrawPathOnMazeImage(
   maze_image_t *image,
   point_t const *path, size_t path_length,
-  rgb_t const *path_color);
+  rgb_t const *color)
+{
+  point_t ipos;
+  size_t i;
+  if (!image || !path || !color) return;
+  for (i = 0; i < path_length; i++)
+  {
+    /* Fill cell */
+    MazePositionToMazeImagePosition(image, &path[i], &ipos);
+    DrawRectangle(
+      image, &ipos,
+      image->config.cell_width, image->config.cell_width,
+      color);
+    /* Fill connection */
+    if (i > 0 && image->config.wall_width > 0)
+    {
+      /* Can only fill connections of consecutive points are adjacent. */
+      if (!PositionsAreAdjacent(&path[i], &path[i - 1])) continue;
+
+      /* DrawRectangle: h, w */
+      if (path[i].row < path[i - 1].row)
+      {
+        /* Case: Current cell is a row below */
+        ipos.row += image->config.cell_width;
+        DrawRectangle(
+          image, &ipos,
+          image->config.wall_width, image->config.cell_width,
+          color);
+      }
+      else if (path[i].row > path[i - 1].row)
+      {
+        /* Case: Current cell is a row above */
+        ipos.row -= image->config.wall_width;
+        DrawRectangle(
+          image, &ipos,
+          image->config.wall_width, image->config.cell_width,
+          color);
+      }
+      else if (path[i].col < path[i - 1].col)
+      {
+        /* Case: Current cell is a column below */
+        ipos.col += image->config.cell_width;
+        DrawRectangle(
+          image, &ipos,
+          image->config.cell_width, image->config.wall_width,
+          color);
+      }
+      else
+      {
+        /* Case: Current cell is a column above */
+        ipos.col -= image->config.wall_width;
+        DrawRectangle(
+          image, &ipos,
+          image->config.cell_width, image->config.wall_width,
+          color);
+      }
+    }
+  }
+}
 
 #define EXPORT_EXIT(clean_up_state) exit_on_cleanup = true; goto clean_up_state
 
@@ -450,4 +510,12 @@ static void SetMazeImageCellColorIfUnset(maze_image_t *image, point_t const *pos
   new_color = CloneColor(color);
   /* Possible setting color fails if pos is out of range incorrect. */
   if (!SetGridCell(image->pixels, pos, new_color)) FreeColor(new_color);
+}
+
+static bool_t PositionsAreAdjacent(point_t const *a, point_t const *b)
+{
+  /* Check that they share a row or a column */
+  if (a->row != b->row && a->col != b->col) return false;
+  return (a->row + 1 == b->row || a->row == b->row + 1
+       || a->col + 1 == b->col || a->col == b->col + 1);
 }

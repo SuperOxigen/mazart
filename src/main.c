@@ -7,8 +7,8 @@
 #include "maze.h"
 #include "maze_image.h"
 
-static size_t const kWidth = 80;
-static size_t const kHeight = 80;
+static size_t const kWidth = 250;
+static size_t const kHeight = 250;
 static point_t const kStart = {
   .row = 0,
   .col = kWidth - 1
@@ -18,12 +18,17 @@ static point_t const kEnd = {
   .col = 0
 };
 
+static rgb_t const kRed = {
+  .red = 255, 0
+};
+
 int main(int argc __unused, char **argv __unused)
 {
   point_t *path;
   size_t path_length;
   maze_t *maze;
   maze_image_t *image;
+  maze_image_config_t config;
   srand(5);
   printf("Creating Maze\n");
   maze = CreateMaze(kHeight, kWidth, &kStart, &kEnd);
@@ -33,8 +38,10 @@ int main(int argc __unused, char **argv __unused)
   printf("Path found in %lu steps\n", path_length);
 
   printf("Creating image\n");
-  image = CreateMazeImage(maze, NULL);
-  ExportImageToPNG(image, "sample.png");
+  image = CreateMazeImage(maze, &config);
+  ExportImageToPNG(image, "maze.png");
+  DrawPathOnMazeImage(image, path, path_length, &kRed);
+  ExportImageToPNG(image, "maze.sol.png");
 
   FreeMazeImage(image);
   FreeMaze(maze);
