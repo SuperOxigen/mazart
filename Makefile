@@ -34,4 +34,4 @@ obj/maze_image.o: src/maze_image.c src/maze_image.h $(COMMON_HEADERS)
 
 bin/mazart.exe: src/main.c $(MAZART_OBJS)
 	@echo -n "[ CC ]"
-	$(CC) $(CFLAGS) -o bin/mazart.exe src/main.c $(MAZART_OBJS)
+	$(CC) $(CFLAGS) -lpng -o bin/mazart.exe src/main.c $(MAZART_OBJS)

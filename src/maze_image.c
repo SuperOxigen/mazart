@@ -1,9 +1,17 @@
 
+#include <setjmp.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+
+#include <png.h>
 
 #include "grid.h"
 #include "maze_image.h"
+
+#define BIT_DEPTH 8
+static uint32_t const kOneKiloByte = 1024;
 
 /* - - Maze Image Config - - */
 void ClearMazeImageConfig(maze_image_config_t *config)
@@ -80,6 +88,8 @@ static inline void GetConnColor(maze_image_t const *image, maze_cell_t const *a,
   *color = image->config.default_conn_color;
 }
 
+/* - - Maze Image API - - */
+
 maze_image_t *CreateMazeImage(maze_t const *maze, maze_image_config_t const *config)
 {
   maze_image_t *image;
@@ -126,6 +136,168 @@ size_t MazeImageHeight(maze_image_t const *image)
   if (!image) return 0;
   return GridHeight(image->pixels);
 }
+
+void DrawPathOnMazeImage(
+  maze_image_t *image,
+  point_t const *path, size_t path_length,
+  rgb_t const *path_color);
+
+#define EXPORT_EXIT(clean_up_state) exit_on_cleanup = true; goto clean_up_state
+
+void ExportImageToPNG(maze_image_t const *image, char const *png_path)
+{
+  FILE *out_fp;
+  png_structp png_ptr;
+  png_infop info_ptr;
+  bool exit_on_cleanup;
+  png_time cur_time;
+  time_t sys_time;
+  point_t ipos;
+  png_byte *row_data, **rows_data;
+  rgb_t const *pixel_color;
+  uint8_t *red_ptr, *green_ptr, *blue_ptr;
+  size_t width, height, row_count, i;
+  if (!image || !png_path)
+  {
+    fprintf(stderr, "Missing image or png_path\n");
+    EXPORT_EXIT(CLEAN_UP_END);
+  }
+
+  png_ptr = NULL;
+  info_ptr = NULL;
+  row_data = NULL;
+  exit_on_cleanup = false;
+
+  out_fp = fopen(png_path, "wb");
+  if (!out_fp)
+  {
+    fprintf(stderr, "Failed to open PNG export file %s\n", png_path);
+    EXPORT_EXIT(CLEAN_UP_END);
+  }
+
+  png_ptr = png_create_write_struct(
+    PNG_LIBPNG_VER_STRING,
+    NULL /* Error callback argument */,
+    NULL /* Error callback function */,
+    NULL /* Warning callback function */);
+  if (!png_ptr)
+  {
+    fprintf(stderr, "Failed to create PNG structure\n");
+    EXPORT_EXIT(CLEAN_UP_FILE);
+  }
+
+  info_ptr = png_create_info_struct(png_ptr);
+  if (!info_ptr)
+  {
+    fprintf(stderr, "Failed to create PNG info structure\n");
+    EXPORT_EXIT(CLEAN_UP_PNG_STRUCT);
+  }
+
+  /* PNG Meta Data */
+  if (setjmp(png_jmpbuf(png_ptr)))
+  {
+    fprintf(stderr, "Failed to set PNG Meta Data\n");
+    EXPORT_EXIT(CLEAN_UP_PNG_STRUCT);
+  }
+
+  width = MazeImageWidth(image);
+  height = MazeImageHeight(image);
+  png_init_io(png_ptr, out_fp);
+  png_set_IHDR(png_ptr, info_ptr,
+    width, height,
+    BIT_DEPTH /* Bit Depth */,
+    PNG_COLOR_TYPE_RGB /* Color Type */,
+    PNG_INTERLACE_NONE /* Interlace Type */,
+    PNG_COMPRESSION_TYPE_DEFAULT /* Compression Type */,
+    PNG_FILTER_TYPE_DEFAULT /* Filter Type */);
+  /* Set PNG time */
+  time(&sys_time);
+  png_convert_from_struct_tm(&cur_time, gmtime(&sys_time));
+  png_set_tIME(png_ptr, info_ptr, &cur_time);
+
+  png_set_flush(png_ptr, (16 * kOneKiloByte) / (4 * width));
+  png_write_info(png_ptr, info_ptr);
+
+  /* PNG Image Data */
+  if (setjmp(png_jmpbuf(png_ptr)))
+  {
+    fprintf(stderr, "Failed to set PNG Image Data\n");
+    EXPORT_EXIT(CLEAN_UP_ROW_DATA);
+  }
+
+  row_count = 0;  /* Set this now incase of a jump to clean up. */
+  rows_data = (png_byte**)calloc(height, sizeof(png_byte*));
+  if (!rows_data)
+  {
+    fprintf(
+      stderr,
+      "Failed to allocate row array data buffer (%lu height, %lu byte size)\n",
+      height, (height * sizeof(png_byte*)));
+    EXPORT_EXIT(CLEAN_UP_PNG_STRUCT);
+  }
+
+  for (ipos.row = 0; ipos.row < height; ipos.row++, row_count++)
+  {
+    row_data = (png_byte *)malloc(png_get_rowbytes(png_ptr, info_ptr));
+    if (!row_data)
+    {
+      fprintf(
+        stderr,
+        "Failed to allocate row %lu data buffer (%lu width, %lu byte size)\n",
+        row_count, width, png_get_rowbytes(png_ptr, info_ptr));
+      EXPORT_EXIT(CLEAN_UP_ROW_DATA);
+    }
+    rows_data[ipos.row] = row_data;
+    for (ipos.col = 0; ipos.col < width; ipos.col++)
+    {
+      red_ptr = (uint8_t *) &row_data[ipos.col * 3];
+      green_ptr = (uint8_t *) &row_data[ipos.col * 3 + 1];
+      blue_ptr = (uint8_t *) &row_data[ipos.col * 3 + 2];
+      pixel_color = GetGridCell(image->pixels, &ipos);
+      if (!pixel_color)
+      {
+        pixel_color = &image->config.default_wall_color;
+      }
+      *red_ptr = pixel_color->red;
+      *green_ptr = pixel_color->green;
+      *blue_ptr = pixel_color->blue;
+    }
+  }
+  png_write_image(png_ptr, rows_data);
+  png_write_end(png_ptr, NULL);
+
+CLEAN_UP_ROW_DATA:
+  if (rows_data)
+  {
+    for (i = 0; i < row_count; i++)
+    {
+      free(rows_data[i]);
+      rows_data[i] = NULL;
+    }
+    free(rows_data);
+    rows_data = NULL;
+  }
+CLEAN_UP_PNG_STRUCT:
+  if (png_ptr)
+  {
+    png_destroy_write_struct(&png_ptr, &info_ptr);
+    png_ptr = NULL;
+    info_ptr = NULL;
+  }
+CLEAN_UP_FILE:
+  if (out_fp)
+  {
+    fclose(out_fp);
+    out_fp = NULL;
+  }
+CLEAN_UP_END:
+  if (exit_on_cleanup)
+  {
+    exit(EXIT_FAILURE);
+  }
+}
+
+/* - - Maze Image Internal - - */
 
 static void DrawMazeImageBorders(maze_image_t *image)
 {
@@ -255,9 +427,13 @@ static void MazePositionToMazeImagePosition(maze_image_t *image, point_t const *
 static void SetMazeImageCellColor(maze_image_t *image, point_t const *pos, rgb_t const *color)
 {
   rgb_t *cur_color, *new_color;
-  /* Clean up old color. */
+  /* Reuse old color object if available. */
   cur_color = GetGridCell(image->pixels, pos);
-  if (cur_color) FreeColor(cur_color);
+  if (cur_color)
+  {
+    *cur_color = *color;
+    return;
+  }
   /* Create new color. */
   new_color = CloneColor(color);
   /* Possible setting color fails if pos is out of range incorrect. */
