@@ -5,6 +5,7 @@
 
 #include "grid.h"
 #include "maze.h"
+#include "priority.h"
 
 struct maze_st {
   grid_t *grid;
@@ -38,6 +39,14 @@ static maze_cell_t *CreateMazeCell(point_t const *pos);
 static void FreeMazeCell(maze_cell_t *cell);
 static void FreeVoidMazeCell(void *cell) { FreeMazeCell((maze_cell_t*) cell); }
 static void ConnectMazeCells(maze_cell_t *a, maze_cell_t *b);
+
+typedef struct {
+  maze_cell_t *src;
+  maze_cell_t *dest;
+} maze_cell_pair_t;
+
+static maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest);
+static void FreeMazeCellPair(maze_cell_pair_t *pair);
 
 /* - - Maze - - */
 
@@ -166,58 +175,50 @@ size_t ComputeMazePath(
     path, 0, max_path);
 }
 
-static void RemovePosition(point_t *poss, size_t idx, size_t n)
-{
-  size_t i;
-  for (i = idx + 1; i < n; i++)
-  {
-    assign_point(&poss[i], &poss[i-1]);
-  }
-}
-
-static void RandomizePositions(point_t *poss, size_t n)
-{
-  size_t i, j;
-  for (i = 0; i < n; i++)
-  {
-    j = rand() % n;
-    if (i == j) continue;
-    swap_points(&poss[i], &poss[j]);
-  }
-}
-
-static void CrawlMazeDrawing(maze_t *maze, maze_cell_t *current)
+static void CrawlMazeDrawing(maze_t *maze, maze_cell_t *start)
 {
   point_t poss[4];
   size_t n, i;
-  maze_cell_t *next;
-  visit(current);
-  /* Create a list of potential neighbours. */
-  for (i = 0; i < 4; i++) assign_point(&current->pos, &poss[i]);
-  n = 2;
-  poss[0].col++;
-  poss[1].row++;
-  if (poss[n].col > 0) poss[n++].col--;
-  if (poss[n].row > 0) poss[n++].row--;
-  /* Remove non-existent or visited neighbours */
-  for (i = 0; i < n; i++)
+  maze_cell_t *current, *next;
+  maze_cell_pair_t *conn;
+  priority_queue_t *conn_queue;
+  conn_queue = CreatePriorityQueue();
+  current = start;
+  while (current)
   {
-    next = GetMazeCell(maze, &poss[i]);
-    if (next && !next->visited) continue;
-    RemovePosition(poss, i--, n--);
-  }
-  if (n == 0) return;
-  /* Randomize remaining */
-  RandomizePositions(poss, n);
-  /* Go through each */
-  for (i = 0; i < n; i++)
-  {
-    next = GetMazeCell(maze, &poss[i]);
-    /* Check that while visiting one, that it hasn't vistsed the next */
-    if (next->visited) continue;
+    visit(current);
+    /* Create a list of potential neighbours. */
+    for (i = 0; i < 4; i++) assign_point(&current->pos, &poss[i]);
+    n = 2;
+    poss[0].col++;
+    poss[1].row++;
+    if (poss[n].col > 0) poss[n++].col--;
+    if (poss[n].row > 0) poss[n++].row--;
+    /* Randomly enqueue all of the neighbours */
+    for (i = 0; i < n; i++)
+    {
+      next = GetMazeCell(maze, &poss[i]);
+      if (!next || next->visited) continue;
+      conn = CreateMazeCellPair(current, next);
+      EnqueuePriority(conn_queue, rand(), conn);
+    }
+    /* Pop out a connection and make it */
+    do
+    {
+      conn = PopTopPriority(conn_queue);
+      if (conn)
+      {
+        current = conn->src;
+        next = conn->dest;
+        FreeMazeCellPair(conn);
+      }
+    }
+    while (conn && next->visited);
+    if (!conn) break;
     ConnectMazeCells(current, next);
-    CrawlMazeDrawing(maze, next);
+    current = next;
   }
+  FreePriorityQueue(conn_queue);
 }
 
 static void DrawMaze(maze_t *maze)
@@ -367,4 +368,19 @@ static void ConnectMazeCells(maze_cell_t *a, maze_cell_t *b)
     }
   }
   return;
+}
+
+static maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest)
+{
+  maze_cell_pair_t *pair;
+  pair = calloc(1, sizeof(maze_cell_pair_t));
+  pair->src = src;
+  pair->dest = dest;
+  return pair;
+}
+
+static void FreeMazeCellPair(maze_cell_pair_t *pair)
+{
+  memset(pair, 0, sizeof(maze_cell_pair_t));
+  free(pair);
 }
