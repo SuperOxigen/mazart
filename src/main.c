@@ -7,8 +7,8 @@
 #include "maze.h"
 #include "maze_image.h"
 
-static size_t const kWidth = 250;
-static size_t const kHeight = 250;
+static size_t const kWidth = 190;
+static size_t const kHeight = 106;
 static point_t const kStart = {
   .row = 0,
   .col = kWidth - 1
@@ -21,6 +21,19 @@ static point_t const kEnd = {
 static rgb_t const kRed = {
   .red = 255, 0
 };
+
+static bool_t cell_to_color(maze_cell_t const *cell, rgb_t *color)
+{
+  point_t pos;
+  if (!cell) return false;
+  GetMazeCellPosition(cell, &pos);
+  *color = (rgb_t) {
+    .red = pos.col % 256,
+    .green = pos.row % 256,
+    .blue = ((pos.col % 256) * (pos.row % 256)) % 256
+  };
+  return true;
+}
 
 int main(int argc __unused, char **argv __unused)
 {
@@ -38,6 +51,11 @@ int main(int argc __unused, char **argv __unused)
   printf("Path found in %lu steps\n", path_length);
 
   printf("Creating image\n");
+  DefaultMazeImageConfig(&config);
+  config.border_width = 10;
+  config.cell_width = 10;
+  config.wall_width = 0;
+  config.cell_color_gen = cell_to_color;
   image = CreateMazeImage(maze, &config);
   ExportImageToPNG(image, "maze.png");
   DrawPathOnMazeImage(image, path, path_length, &kRed);
@@ -45,7 +63,6 @@ int main(int argc __unused, char **argv __unused)
 
   FreeMazeImage(image);
   FreeMaze(maze);
-
 
   return 0;
 }
