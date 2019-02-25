@@ -51,7 +51,7 @@ void *GetGridCell(grid_t const *grid, point_t const *pos)
 bool_t SetGridCell(grid_t *grid, point_t const *pos, void *cell)
 {
   if (!grid) return false;
-  if (pos->row >= grid->height || pos->col >= grid->width) return NULL;
+  if (pos->row >= grid->height || pos->col >= grid->width) return false;
   grid->data[pos->row][pos->col] = cell;
   return true;
 }
@@ -68,10 +68,7 @@ size_t GridHeight(grid_t const *grid)
   return grid->height;
 }
 
-static void nopFree(void * v __unused)
-{
-  return;
-}
+static void nopFree(void * v __unused) { }
 
 void ClearGrid(grid_t *grid)
 {
