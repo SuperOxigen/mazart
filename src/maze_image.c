@@ -78,13 +78,15 @@ static void SetMazeImageCellColorIfUnset(maze_image_t *image, point_t const *pos
 
 static inline void GetCellColor(maze_image_t const *image, maze_cell_t const *cell, rgb_t *color)
 {
-  if (image->config.cell_color_gen && image->config.cell_color_gen(cell, color)) return;
+  if (image->config.cell_color_gen &&
+      image->config.cell_color_gen(image->config.cell_color_ctx, cell, color)) return;
   *color = image->config.default_cell_color;
 }
 
 static inline void GetConnColor(maze_image_t const *image, maze_cell_t const *a, maze_cell_t const *b, rgb_t *color)
 {
-  if (image->config.conn_color_gen && image->config.conn_color_gen(a, b, color)) return;
+  if (image->config.conn_color_gen &&
+      image->config.conn_color_gen(image->config.conn_color_ctx, a, b, color)) return;
   *color = image->config.default_conn_color;
 }
 
@@ -114,7 +116,7 @@ maze_image_t *CreateMazeImage(maze_t const *maze, maze_image_config_t const *con
 
   DrawMazeImageBorders(image);
   DrawMazeImageCells(image, maze);
-  FillEmptyMazeImageCells(image, &image->config.default_wall_color);
+  FillEmptyMazeImageCells(image, &image->config.wall_color);
   return image;
 }
 
@@ -316,7 +318,7 @@ void ExportImageToPNG(maze_image_t const *image, char const *png_path)
       pixel_color = GetGridCell(image->pixels, &ipos);
       if (!pixel_color)
       {
-        pixel_color = &image->config.default_wall_color;
+        pixel_color = &image->config.wall_color;
       }
       *red_ptr = pixel_color->red;
       *green_ptr = pixel_color->green;
@@ -372,7 +374,7 @@ static void DrawMazeImageBorders(maze_image_t *image)
   {
     for (pos.col = 0; pos.col < width; pos.col++)
     {
-      SetMazeImageCellColor(image, &pos, &image->config.default_border_color);
+      SetMazeImageCellColor(image, &pos, &image->config.border_color);
     }
   }
   /* Bottom */
@@ -380,7 +382,7 @@ static void DrawMazeImageBorders(maze_image_t *image)
   {
     for (pos.col = 0; pos.col < width; pos.col++)
     {
-      SetMazeImageCellColor(image, &pos, &image->config.default_border_color);
+      SetMazeImageCellColor(image, &pos, &image->config.border_color);
     }
   }
   /* Sides */
@@ -388,11 +390,11 @@ static void DrawMazeImageBorders(maze_image_t *image)
   {
     for (pos.col = 0; pos.col < thickness; pos.col++)
     {
-      SetMazeImageCellColor(image, &pos, &image->config.default_border_color);
+      SetMazeImageCellColor(image, &pos, &image->config.border_color);
     }
     for (pos.col = width - thickness; pos.col < width; pos.col++)
     {
-      SetMazeImageCellColor(image, &pos, &image->config.default_border_color);
+      SetMazeImageCellColor(image, &pos, &image->config.border_color);
     }
   }
 }

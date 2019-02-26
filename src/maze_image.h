@@ -6,22 +6,25 @@
 #include "maze.h"
 
 /* Maze Image Config */
-typedef bool_t (*cell_to_color_t)(maze_cell_t const*, rgb_t *);
-typedef bool_t (*cell_connection_to_color_t)(maze_cell_t const*, maze_cell_t const*, rgb_t *);
+typedef bool_t (*cell_to_color_t)(void *, maze_cell_t const*, rgb_t *);
+typedef bool_t (*cell_connection_to_color_t)(void *, maze_cell_t const*, maze_cell_t const*, rgb_t *);
 
 typedef struct {
   /* Thicknesses */
   size_t border_width;
   size_t cell_width;
   size_t wall_width;
+  /* Fixed colors */
+  rgb_t wall_color;
+  rgb_t border_color;
   /* Color generators */
   cell_to_color_t cell_color_gen;
+  void *cell_color_ctx;
   cell_connection_to_color_t conn_color_gen;
+  void *conn_color_ctx;
   /* Default color */
   rgb_t default_cell_color;
-  rgb_t default_wall_color;
   rgb_t default_conn_color;
-  rgb_t default_border_color;
   rgb_t default_path_color;
 } maze_image_config_t;
 void ClearMazeImageConfig(maze_image_config_t *config);
