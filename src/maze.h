@@ -5,6 +5,10 @@
 
 typedef struct maze_st maze_t;
 typedef struct maze_cell_st maze_cell_t;
+typedef struct {
+  maze_cell_t *src;
+  maze_cell_t *dest;
+} maze_cell_pair_t;
 
 typedef size_t maze_flag_t;
 #define MAX_MAZE_FLAG 8
@@ -50,5 +54,9 @@ void DecMazeCellProperty(maze_cell_t *cell, maze_property_t property);
 
 /* neighbours must be large enough to fit 4 points */
 size_t GetMazeCellNeighbourPoints(maze_cell_t const *cell, point_t *neightbours);
+
+/* - - Maze Cell Pair - - */
+maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest);
+void FreeMazeCellPair(maze_cell_pair_t *pair);
 
 #endif /* _MAZE_H_ */

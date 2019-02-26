@@ -40,14 +40,6 @@ static void FreeMazeCell(maze_cell_t *cell);
 static void FreeVoidMazeCell(void *cell) { FreeMazeCell((maze_cell_t*) cell); }
 static void ConnectMazeCells(maze_cell_t *a, maze_cell_t *b);
 
-typedef struct {
-  maze_cell_t *src;
-  maze_cell_t *dest;
-} maze_cell_pair_t;
-
-static maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest);
-static void FreeMazeCellPair(maze_cell_pair_t *pair);
-
 /* - - Maze - - */
 
 maze_t *CreateMaze(size_t height, size_t width, point_t const *start, point_t const *end)
@@ -370,7 +362,9 @@ static void ConnectMazeCells(maze_cell_t *a, maze_cell_t *b)
   return;
 }
 
-static maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest)
+/* - - Maze Cell Pair API - - */
+
+maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest)
 {
   maze_cell_pair_t *pair;
   pair = calloc(1, sizeof(maze_cell_pair_t));
@@ -379,7 +373,7 @@ static maze_cell_pair_t *CreateMazeCellPair(maze_cell_t *src, maze_cell_t *dest)
   return pair;
 }
 
-static void FreeMazeCellPair(maze_cell_pair_t *pair)
+void FreeMazeCellPair(maze_cell_pair_t *pair)
 {
   memset(pair, 0, sizeof(maze_cell_pair_t));
   free(pair);
