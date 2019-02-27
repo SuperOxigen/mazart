@@ -1,22 +1,42 @@
+/*
+ * Mazart - Maze
+ *  Module provides a Maze generating object.
+ *
+ * Copyright (c) 2019 Alex Dale
+ * This project is licensed under the terms of the MIT license.
+ * See LICENSE for details.
+ */
+#include "maze.h"
 
 #include <stdlib.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "grid.h"
-#include "maze.h"
 #include "priority.h"
+
+/* - - Maze Structure - - */
 
 struct maze_st {
   grid_t *grid;
-  /* Start and finish */
   point_t start;
   point_t end;
 };
 
+/* - - Maze Internal API Prototypes - - */
+
+/* Creates the connections between cells. */
 static void DrawMaze(maze_t *maze);
+/* Removes all connections between cells. */
 static void ClearMazeConnections(maze_t *maze);
+/* Clears all Maze Cell's `visited` flag. */
 static void ClearMazeVisitedFlags(maze_t *maze);
+
+static size_t CrawlMazePath(
+  maze_t const *maze,
+  maze_cell_t *current, maze_cell_t *dest,
+  point_t *path, size_t path_idx, size_t max_path);
+
+/* - - Maze Cell Structure - - */
 
 struct maze_cell_st {
   point_t pos;
@@ -29,18 +49,24 @@ struct maze_cell_st {
   bool_t flags[MAX_MAZE_FLAG];
   /* Properties */
   int64_t properties[MAX_MAZE_PROPERTY];
-  /* Private Flags*/
-  bool_t visited;
+  /* Private Flags */
+  bool_t visited; /* Used for several traveral algorithms. */
 };
 
-#define visit(c) (c)->visited = true
+/* - - Maze Cell Internal API Prototypes - - */
 
+/* Maze Cell constructor. */
 static maze_cell_t *CreateMazeCell(point_t const *pos);
+/* Maze Cell destructor. */
 static void FreeMazeCell(maze_cell_t *cell);
+/* Special destructor signature used for ClearGridDestroyCells(). */
 static void FreeVoidMazeCell(void *cell) { FreeMazeCell((maze_cell_t*) cell); }
+
+#define visit(c) (c)->visited = true
+/* Creates a bi-directional connection between two given cells. */
 static void ConnectMazeCells(maze_cell_t *a, maze_cell_t *b);
 
-/* - - Maze - - */
+/* - - Maze API - - */
 
 maze_t *CreateMaze(size_t height, size_t width, point_t const *start, point_t const *end)
 {
@@ -48,12 +74,16 @@ maze_t *CreateMaze(size_t height, size_t width, point_t const *start, point_t co
   point_t p;
   if (!start || !end) return NULL;
   if (height == 0 || width == 0) return NULL;
+  /* Enforce start end bounds. */
   if (width <= start->col || width <= end->col) return NULL;
   if (height <= start->row || height <= end->row) return NULL;
+  /* Create Maze struct. */
   maze = (maze_t*)calloc(1, sizeof(maze_t));
+  /* Create Grid for storing Maze Cells. */
   maze->grid = CreateGrid(height, width);
-  assign_point(start, &maze->start);
-  assign_point(end, &maze->end);
+  maze->start = *start;
+  maze->end = *end;
+  /* Creates a new Maze Cell for every point.  */
   for (p.row = 0; p.row < height; p.row++)
   {
     for (p.col = 0; p.col < width; p.col++)
@@ -68,7 +98,7 @@ maze_t *CreateMaze(size_t height, size_t width, point_t const *start, point_t co
 void FreeMaze(maze_t *maze)
 {
   if (!maze) return;
-  ClearGridDestroyCell(maze->grid, FreeVoidMazeCell);
+  ClearGridDestroyCells(maze->grid, FreeVoidMazeCell);
   FreeGrid(maze->grid);
   memset(maze, 0, sizeof(maze_t));
   free(maze);
@@ -78,9 +108,17 @@ void ReDrawMaze(maze_t *maze, point_t const *start, point_t const *end)
 {
   if (!maze) return;
   ClearMazeConnections(maze);
-  if (start) assign_point(start, &maze->start);
-  if (end) assign_point(end, &maze->end);
+  if (start) maze->start = *start;
+  if (end) maze->end = *end;
   DrawMaze(maze);
+}
+
+/* - Maze getters. - */
+
+size_t MazeHeight(maze_t const *maze)
+{
+  if (!maze) return 0;
+  return GridHeight(maze->grid);
 }
 
 size_t MazeWidth(maze_t const *maze)
@@ -89,22 +127,16 @@ size_t MazeWidth(maze_t const *maze)
   return GridWidth(maze->grid);
 }
 
-size_t MazeHeight(maze_t const *maze)
-{
-  if (!maze) return 0;
-  return GridHeight(maze->grid);
-}
-
 void MazeStart(maze_t const *maze, point_t *pos)
 {
   if (!maze || !pos) return;
-  assign_point(&maze->start, pos);
+  *pos = maze->start;
 }
 
 void MazeEnd(maze_t const *maze, point_t *pos)
 {
   if (!maze || !pos) return;
-  assign_point(&maze->end, pos);
+  *pos = maze->end;
 }
 
 maze_cell_t *GetMazeCell(maze_t const *maze, point_t const *pos)
@@ -125,7 +157,21 @@ maze_cell_t *GetMazeEndCell(maze_t const *maze)
   return GetMazeCell(maze, &maze->end);
 }
 
-/* - - Compute Path - - */
+size_t ComputeMazePath(
+  maze_t const *maze, point_t const *a, point_t const *b,
+  point_t *path, size_t max_path)
+{
+  if (!maze || !a || !b || !path) return 0;
+  ClearMazeVisitedFlags((maze_t*)maze);
+  return CrawlMazePath(
+    maze,
+    GetMazeCell(maze, a), GetMazeCell(maze, b),
+    path, 0, max_path);
+}
+
+/* - - Maze Internal API. - - */
+
+/* TODO: Rewrite algorithm to avaid recursion. */
 static size_t CrawlMazePath(
   maze_t const *maze,
   maze_cell_t *current, maze_cell_t *dest,
@@ -136,8 +182,8 @@ static size_t CrawlMazePath(
   maze_cell_t *next;
   if (path_idx >= max_path) return 0;
   visit(current);
-  assign_point(&current->pos, &path[path_idx]);
-  if (same_point(&current->pos, &dest->pos))
+  path[path_idx] = current->pos;
+  if (PointsEqual(&current->pos, &dest->pos))
   {
     return path_idx + 1;
   }
@@ -155,18 +201,6 @@ static size_t CrawlMazePath(
   return 0;
 }
 
-size_t ComputeMazePath(
-  maze_t const *maze, point_t const *a, point_t const *b,
-  point_t *path, size_t max_path)
-{
-  if (!maze || !a || !b || !path) return 0;
-  ClearMazeVisitedFlags((maze_t*)maze);
-  return CrawlMazePath(
-    maze,
-    GetMazeCell(maze, a), GetMazeCell(maze, b),
-    path, 0, max_path);
-}
-
 static void CrawlMazeDrawing(maze_t *maze, maze_cell_t *start)
 {
   point_t poss[4];
@@ -180,7 +214,7 @@ static void CrawlMazeDrawing(maze_t *maze, maze_cell_t *start)
   {
     visit(current);
     /* Create a list of potential neighbours. */
-    for (i = 0; i < 4; i++) assign_point(&current->pos, &poss[i]);
+    for (i = 0; i < 4; i++) poss[i] = current->pos;
     n = 2;
     poss[0].col++;
     poss[1].row++;
@@ -258,27 +292,12 @@ static void ClearMazeVisitedFlags(maze_t *maze)
   }
 }
 
-/* - - Maze Cell - - */
-static maze_cell_t *CreateMazeCell(point_t const *pos)
-{
-  maze_cell_t *cell;
-  if (!pos) return NULL;
-  cell = (maze_cell_t*)calloc(1, sizeof(maze_cell_t));
-  assign_point(pos, &cell->pos);
-  return cell;
-}
-
-static void FreeMazeCell(maze_cell_t *cell)
-{
-  if (!cell) return;
-  memset(cell, 0, sizeof(maze_cell_t));
-  free(cell);
-}
+/* - - Maze Cell API - - */
 
 void GetMazeCellPosition(maze_cell_t const *cell, point_t *pos)
 {
   if (!cell || !pos) return;
-  assign_point(&cell->pos, pos);
+  *pos = cell->pos;
 }
 
 bool_t GetMazeCellFlag(maze_cell_t const *cell, maze_flag_t flag)
@@ -322,17 +341,35 @@ size_t GetMazeCellNeighbourPoints(maze_cell_t const *cell, point_t *neighbours)
   size_t i;
   if (!cell || !neighbours) return 0;
   i = 0;
-  if (cell->up) assign_point(&cell->up->pos, &neighbours[i++]);
-  if (cell->down) assign_point(&cell->down->pos, &neighbours[i++]);
-  if (cell->left) assign_point(&cell->left->pos, &neighbours[i++]);
-  if (cell->right) assign_point(&cell->right->pos, &neighbours[i++]);
+  if (cell->up) neighbours[i++] = cell->up->pos;
+  if (cell->down) neighbours[i++] = cell->down->pos;
+  if (cell->left) neighbours[i++] = cell->left->pos;
+  if (cell->right) neighbours[i++] = cell->right->pos;
   return i;
+}
+
+/* - - Maze Cell Internal API. - - */
+
+static maze_cell_t *CreateMazeCell(point_t const *pos)
+{
+  maze_cell_t *cell;
+  if (!pos) return NULL;
+  cell = (maze_cell_t*)calloc(1, sizeof(maze_cell_t));
+  cell->pos = *pos;
+  return cell;
+}
+
+static void FreeMazeCell(maze_cell_t *cell)
+{
+  if (!cell) return;
+  memset(cell, 0, sizeof(maze_cell_t));
+  free(cell);
 }
 
 static void ConnectMazeCells(maze_cell_t *a, maze_cell_t *b)
 {
   if (!a || !b) return;
-  if (same_point(&a->pos, &b->pos)) return;
+  if (PointsEqual(&a->pos, &b->pos)) return;
   if (a->pos.col == b->pos.col)
   {
     if ((a->pos.row + 1) == b->pos.row)

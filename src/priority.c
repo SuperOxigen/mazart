@@ -1,8 +1,15 @@
+/*
+ * Mazart - Priority Queue
+ *  Module provides a Priority Queue data structure.
+ *
+ * Copyright (c) 2019 Alex Dale
+ * This project is licensed under the terms of the MIT license.
+ * See LICENSE for details.
+ */
+#include "priority.h"
 
 #include <stdlib.h>
 #include <string.h>
-
-#include "priority.h"
 
 static size_t const kDefaultCapacity = 1024;
 
