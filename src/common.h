@@ -17,6 +17,8 @@
 typedef bool bool_t;
 #undef bool  /* Forces the use of bool_t only, */
 
+typedef char const *kstring_t;
+
 /* - - Point Type - - */
 
 typedef struct {

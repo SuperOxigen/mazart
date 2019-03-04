@@ -18,7 +18,11 @@ clean:
 
 COMMON_HEADERS = src/common.h
 
-MAZART_OBJS = obj/grid.o obj/deque.o obj/priority.o obj/maze.o obj/color.o obj/maze_image.o
+MAZART_OBJS = obj/grid.o obj/deque.o obj/priority.o obj/maze.o obj/color.o obj/maze_image.o obj/config.o
+
+obj/config.o: src/config.c src/config.h $(COMMON_HEADERS)
+	@echo -n "[OBJ ] "
+	$(CC) $(CFLAGS) -c -o obj/config.o src/config.c
 
 obj/color.o: src/color.c src/color.h $(COMMON_HEADERS)
 	@echo -n "[OBJ ] "
