@@ -101,6 +101,7 @@ static known_color_t const kKnownColors[] = {
   {"grey", CLR_GREY},
   {"black", CLR_BLACK},
   {"blue", CLR_BLUE},
+  {"teal", CLR_TEAL},
   {"green", CLR_GREEN},
   {"yellow", CLR_YELLOW},
   {"orange", CLR_ORANGE},
@@ -937,6 +938,64 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
   {
     config->border_color = config->wall_color;
   }
-
+  if (config->cell_color_mode != CLR_MODE_NONE && config->cell_color_metric == CLR_MTRC_NONE)
+  {
+    fprintf(stderr, "Error: Color metric cannot be none if color mode is set\n");
+    return false;
+  }
+  if (config->cell_color_mode == CLR_MODE_NONE && config->cell_color_metric != CLR_MTRC_NONE)
+  {
+    fprintf(stderr, "Error: Color mode cannot be none if color metric is set\n");
+    return false;
+  }
+  if (!config->output_file)
+  {
+    fprintf(stderr, "Error: %s is required\n", kOutputFileFlag);
+    return false;
+  }
   return true;
+}
+
+bool_t MazartColorToColor(mazart_color_t ma_color, rgb_t *color)
+{
+  switch (ma_color)
+  {
+    case CLR_WHITE:
+      *color = (rgb_t) { .red = 255, .green = 255, .blue = 255 };
+      return true;
+    case CLR_LIGHT_GREY:
+      *color = (rgb_t) { .red = 225, .green = 225, .blue = 225 };
+      return true;
+    case CLR_GREY:
+      *color = (rgb_t) { .red = 127, .green = 127, .blue = 127 };
+      return true;
+    case CLR_BLACK:
+      *color = (rgb_t) { .red = 0, .green = 0, .blue = 0 };
+      return true;
+    case CLR_BLUE:
+      *color = (rgb_t) { .red = 54, .green = 54, .blue = 255 };
+      return true;
+    case CLR_TEAL:
+      *color = (rgb_t) { .red = 54, .green = 208, .blue = 208 };
+      return true;
+    case CLR_GREEN:
+      *color = (rgb_t) { .red = 54, .green = 255, .blue = 54 };
+      return true;
+    case CLR_YELLOW:
+      *color = (rgb_t) { .red = 255, .green = 255, .blue = 54 };
+      return true;
+    case CLR_ORANGE:
+      *color = (rgb_t) { .red = 255, .green = 54, .blue = 0 };
+      return true;
+    case CLR_RED:
+      *color = (rgb_t) { .red = 255, .green = 0, .blue = 0 };
+      return true;
+    case CLR_PURPLE:
+      *color = (rgb_t) { .red = 208, .green = 0, .blue = 208 };
+      return true;
+    case CLR_NONE:
+    case CLR_OTHER:
+    default:
+      return false;
+  }
 }

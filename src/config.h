@@ -11,6 +11,7 @@
 #define _CONFIG_H_
 
 #include "common.h"
+#include "color.h"
 
 typedef enum {
   CLR_NONE,
@@ -21,6 +22,7 @@ typedef enum {
   CLR_BLACK,
   /* Colors. */
   CLR_BLUE,
+  CLR_TEAL,
   CLR_GREEN,
   CLR_YELLOW,
   CLR_ORANGE,
@@ -80,5 +82,7 @@ void MazartDefaultParameters(mazart_config_t *config);
 void PrintMazartConfit(mazart_config_t *config);
 
 bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_config_t *config);
+
+bool_t MazartColorToColor(mazart_color_t ma_color, rgb_t *color);
 
 #endif /* _CONFIG_H_ */
