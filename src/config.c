@@ -79,6 +79,12 @@ static char const kBorderColorFlag[] = "--boarder-color";
 static mazart_color_t const kBorderColorDefault = CLR_OTHER;
 static char const kBorderColorDefaultName[] = "(same as wall color)";
 
+static char const kDrawPathFlag[] = "--draw-path";
+
+static char const kPathColorFlag[] = "--path-color";
+static mazart_color_t const kPathColorDefault = CLR_RED;
+static char const kPathColorDefaultName[] = "red";
+
 static char const kOutputFileFlag[] = "--output";
 
 /* - - Config Consts - - */
@@ -489,6 +495,12 @@ static void PrintUsage(char const *prog)
     "Ignored if maze border thinkness is 0.  "
     "See below for known colors.",
     kColor, kBorderColorDefaultName);
+  PrintFlag(kDrawPathFlag,
+    "Draws a solution path from the top right corner to the bottom left.",
+    NULL, NULL);
+  PrintFlag(kPathColorFlag,
+    "Color of the solution path that is drawn.  "
+    "Ignored if path drawing is not enabled.", kColor, kPathColorDefaultName);
 
   printf("Developer arguments:\n");
   PrintFlag(kDebugModeFlag,
@@ -688,6 +700,7 @@ void MazartDefaultParameters(mazart_config_t *config)
   config->conn_color_method = kConnColorMethodDefault;
   config->wall_color = kWallColorDefault;
   config->border_color = kBorderColorDefault;
+  config->path_color = kPathColorDefault;
 }
 
 void PrintMazartConfit(mazart_config_t *config)
@@ -730,6 +743,10 @@ void PrintMazartConfit(mazart_config_t *config)
   if (config->border_color != CLR_OTHER && config->border_color != CLR_NONE)
   {
     printf("  \"border_color\": \"%s\",\n", ColorToString(config->border_color));
+  }
+  if (config->path_color != CLR_OTHER && config->path_color != CLR_NONE && config->draw_path)
+  {
+    printf("  \"path_color\": \"%s\",\n", ColorToString(config->path_color));
   }
   if (config->output_file)
   {
@@ -935,6 +952,17 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
     {
       config->border_color =
         GET_COLOR(arg, value, kBorderColorFlag);
+      VAL_CONTINUE;
+    }
+    if (StringsEqual(arg, kDrawPathFlag))
+    {
+      config->draw_path = true;
+      continue;
+    }
+    if (StringsEqual(arg, kPathColorFlag))
+    {
+      config->path_color =
+        GET_COLOR(arg, value, kPathColorFlag);
       VAL_CONTINUE;
     }
     if (StringsEqual(arg, kOutputFileFlag))

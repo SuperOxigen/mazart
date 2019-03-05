@@ -231,6 +231,7 @@ static void ConvertConfigToMazeImageConfig(mazart_config_t const *config, maze_i
   }
   MazartColorToColor(config->wall_color, &img_config->wall_color);
   MazartColorToColor(config->border_color, &img_config->border_color);
+  MazartColorToColor(config->path_color, &img_config->default_path_color);
 }
 
 static void ConvertConfigToMazeStartEnd(mazart_config_t const *config, point_t *start, point_t *end)
@@ -303,6 +304,12 @@ int main(int argc, char **argv)
   if (config.debug_mode) printf("Converting maze to image...\n");
   ConvertConfigToMazeImageConfig(&config, &img_config, &maxes);
   image = CreateMazeImage(maze, &img_config);
+
+  if (config.draw_path)
+  {
+    if (config.debug_mode) printf("Drawing solution path...\n");
+    DrawPathOnMazeImage(image, path, path_length, NULL);
+  }
 
   if (config.debug_mode) printf("Exporting maze to %s...\n", config.output_file);
   ExportMazeImageToPNG(image, config.output_file);

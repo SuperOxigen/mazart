@@ -76,6 +76,9 @@ typedef struct {
   mazart_color_t wall_color;
   /* Border color. */
   mazart_color_t border_color;
+  /* Solution path. */
+  bool_t draw_path;
+  mazart_color_t path_color;
   /* Output file. */
   char const *output_file;
 } mazart_config_t;
