@@ -140,12 +140,12 @@ bool_t ConnColorer(void *vctx, maze_cell_t const *a, maze_cell_t const *b, rgb_t
   if (!CellColorer(vctx, b, &b_color)) return false;
   av = (double) a_color.red;
   bv = (double) b_color.red;
-  color->red = (uint8_t) sqrt((av * av) + (bv * bv));
+  color->red = (uint8_t) sqrt(((av * av) + (bv * bv)) / 2.0);
   av = (double) a_color.green;
   bv = (double) b_color.green;
-  color->green = (uint8_t) sqrt((av * av) + (bv * bv));
+  color->green = (uint8_t) sqrt(((av * av) + (bv * bv)) / 2.0);
   av = (double) a_color.blue;
   bv = (double) b_color.blue;
-  color->blue = (uint8_t) sqrt((av * av) + (bv * bv));
+  color->blue = (uint8_t) sqrt(((av * av) + (bv * bv)) / 2.0);
   return true;
 }
