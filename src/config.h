@@ -54,6 +54,8 @@ typedef enum {
 } mazart_color_method_t;
 
 typedef struct {
+  /* Generic parameters. */
+  bool_t debug_mode;
   /* Maze parameters. */
   size_t maze_width;
   size_t maze_height;

@@ -270,39 +270,41 @@ int main(int argc, char **argv)
   {
     return EXIT_FAILURE;
   }
-  PrintMazartConfit(&config);
+  printf("Generating %lu x %lu maze, saving to %s\n",
+    config.maze_height, config.maze_width, config.output_file);
+  if (config.debug_mode) PrintMazartConfit(&config);
 
-  printf("Applying seed %lu\n", config.seed);
+  if (config.debug_mode) printf("Applying seed %lu\n", config.seed);
   srand(config.seed);
 
-  printf("Creating Maze...\n");
+  if (config.debug_mode) printf("Creating Maze...\n");
   maze = CreateMazeFromConfig(&config);
 
-  printf("Computing maze path...\n");
+  if (config.debug_mode) printf("Computing maze path...\n");
   ConvertConfigToMazeStartEnd(&config, &start, &end);
   path = calloc(config.maze_width * config.maze_height + 1, sizeof(point_t));
   path_length = ComputeMazePath(maze,
     &start, &end,
     path, config.maze_width * config.maze_height + 1);
-  printf("Path found, length = %lu\n", path_length);
+  if (config.debug_mode) printf("Path found, length = %lu\n", path_length);
 
-  printf("Finding max path distance...\n");
+  if (config.debug_mode) printf("Finding max path distance...\n");
   maxes.path_max = CountDistanceFromPath(maze, path, path_length);
-  printf("Max distance from path is %ld\n", maxes.path_max);
+  if (config.debug_mode) printf("Max distance from path is %ld\n", maxes.path_max);
 
-  printf("Finding max distance from start...\n");
+  if (config.debug_mode) printf("Finding max distance from start...\n");
   maxes.start_max = CountDistanceFromSource(maze, &start, kStartDistanceProperty);
-  printf("Max distance from start is %ld\n", maxes.start_max);
+  if (config.debug_mode) printf("Max distance from start is %ld\n", maxes.start_max);
 
-  printf("Finding max distance from end...\n");
+  if (config.debug_mode) printf("Finding max distance from end...\n");
   maxes.end_max = CountDistanceFromSource(maze, &end, kEndDistanceProperty);
-  printf("Max distance from end is %ld\n", maxes.end_max);
+  if (config.debug_mode) printf("Max distance from end is %ld\n", maxes.end_max);
 
-  printf("Converting maze to image...\n");
+  if (config.debug_mode) printf("Converting maze to image...\n");
   ConvertConfigToMazeImageConfig(&config, &img_config, &maxes);
   image = CreateMazeImage(maze, &img_config);
 
-  printf("Exporting maze to %s...\n", config.output_file);
+  if (config.debug_mode) printf("Exporting maze to %s...\n", config.output_file);
   ExportMazeImageToPNG(image, config.output_file);
 
   free(path);

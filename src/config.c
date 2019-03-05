@@ -23,6 +23,8 @@
 
 /* - - Flags and Default - - */
 
+static char const kDebugModeFlag[] = "--debug";
+
 static char const kMazeWidthFlag[] = "--maze-width";
 static size_t const kMazeWidthMax = 2048;
 static size_t const kMazeWidthDefault = 64;
@@ -488,6 +490,11 @@ static void PrintUsage(char const *prog)
     "See below for known colors.",
     kColor, kBorderColorDefaultName);
 
+  printf("Developer arguments:\n");
+  PrintFlag(kDebugModeFlag,
+    "Enables some additional logs and internal checks.  "
+    "Intended to be used by program developer, not a user.", NULL, NULL);
+
   printf("Known values:\n");
 
   for (i = 0; i < kKnownColorsCount; i++)
@@ -513,6 +520,8 @@ static void PrintUsage(char const *prog)
     buf[i] = kKnownColorMethods[i].color_method_name;
   }
   PrintKnownValues(kColorMode, buf, kKnownColorMethodsCount);
+  printf("\nCopyright (c) 2019 Alex Dale\n");
+  printf("This software is distributed under the MIT License\n");
 }
 
 static void PrintFlag(
@@ -844,6 +853,11 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
     arg = args[i];
     value = ((i + 1) < arg_count) ? args[i+1] : NULL;
 
+    if (StringsEqual(arg, kDebugModeFlag))
+    {
+      config->debug_mode = true;
+      continue;
+    }
     if (StringsEqual(arg, kMazeWidthFlag))
     {
       config->maze_width =
