@@ -56,6 +56,14 @@ $ ./bin/mazart.exe --output my_maze.png
 $ ./bin/mazart.exe --output basic.png
 ```
 
+*   Simple maze with solution
+
+![alt text](examples/basic.sol.png)
+
+```
+$ ./bin/mazart.exe --draw-path --output basic.png
+```
+
 *   Large maze, small details
 
 ![alt text](examples/dense.png)
