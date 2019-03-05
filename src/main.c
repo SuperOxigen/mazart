@@ -7,30 +7,27 @@
  */
 #include <stdlib.h>
 #include <stdio.h>
+#include <time.h>
 
+#include "colorer.h"
 #include "common.h"
+#include "config.h"
 #include "deque.h"
 #include "maze.h"
 #include "maze_image.h"
 
 static maze_property_t const kPathDistanceProperty = 1;
+static maze_property_t const kStartDistanceProperty = 2;
+static maze_property_t const kEndDistanceProperty = 3;
 
-static size_t const kWidth = 1900;
-static size_t const kHeight = 1060;
-// static size_t const kWidth = 64;
-// static size_t const kHeight = 64;
-static point_t const kStart = {
-  .row = 0,
-  .col = kWidth - 1
-};
-static point_t const kEnd = {
-  .row = kHeight - 1,
-  .col = 0
-};
+static rgb_t const kPresetAStartColor = {.red = 255, .green = 127, .blue = 0};
+static rgb_t const kPresetAEndColor = {.red = 127, .green = 0, .blue = 127};
 
-static rgb_t const kRed = {
-  .red = 255, 0
-};
+typedef struct {
+  int64_t path_max;
+  int64_t start_max;
+  int64_t end_max;
+} mazart_maxes_t;
 
 static int64_t CountDistanceFromPath(maze_t const *maze, point_t *path, size_t path_length)
 {
@@ -41,6 +38,7 @@ static int64_t CountDistanceFromPath(maze_t const *maze, point_t *path, size_t p
   maze_cell_t *cell, *next_cell;
   maze_cell_pair_t *conn;
   deque_t *conn_queue;
+  if (!maze || !path || path_length == 0) return -1;
   height = MazeHeight(maze);
   width = MazeWidth(maze);
   /* Clear path distance data */
@@ -106,94 +104,209 @@ static int64_t CountDistanceFromPath(maze_t const *maze, point_t *path, size_t p
   return max_dist;
 }
 
-/*
-static void CountDistanceFromCell(maze_t const *maze, maze_cell_t *source, maze_property_t property)
-*/
-
-bool_t CellColorGen(void *ctx, maze_cell_t const *cell, rgb_t *color)
+static int64_t CountDistanceFromSource(maze_t const *maze, point_t const *source_pos, maze_property_t property)
 {
-  int64_t const *max_dist;
-  int64_t dist;
-  double frac;
-  if (!ctx || !cell || !color) return false;
-  max_dist = ctx;
-  dist = GetMazeCellProperty(cell, kPathDistanceProperty);
-  frac = ((double) dist) / ((double) (*max_dist + 1));
-  *color = (rgb_t) {
-    .red = (uint8_t) (128.0 * (2.0 - frac)),
-    .green = (uint8_t) (128.0 * (1.0 - frac)),
-    .blue = (uint8_t) (128.0 * frac)
-  };
-  return true;
+  point_t pos;
+  point_t poss[4];
+  size_t height, width, i, n;
+  int64_t dist, max_dist;
+  maze_cell_t *cell, *next_cell;
+  maze_cell_pair_t *conn;
+  deque_t *conn_queue;
+  if (!maze || !source_pos) return -1;
+  height = MazeHeight(maze);
+  width = MazeWidth(maze);
+  /* Clear cell distance data */
+  for (pos.row = 0; pos.row < height; pos.row++)
+  for (pos.col = 0; pos.col < width; pos.col++)
+  {
+    cell = GetMazeCell(maze, &pos);
+    if (!cell) continue;
+    SetMazeCellProperty(cell, property, 0);
+  }
+  /* Initalize First */
+  cell = GetMazeCell(maze, source_pos);
+  if (!cell) return -1;
+  SetMazeCellProperty(cell, property, 1);
+  /* Queue first set of neighbours. */
+  conn_queue = CreateDeque();
+  n = GetMazeCellNeighbourPoints(cell, poss);
+  for (i = 0; i < n; i++)
+  {
+    next_cell = GetMazeCell(maze, &poss[i]);
+    if (!next_cell) return -1;
+    conn = CreateMazeCellPair(cell, next_cell);
+    PushDequeLast(conn_queue, conn);
+  }
+  max_dist = 1;
+  while (DequeSize(conn_queue) > 0)
+  {
+    conn = PopDequeFirst(conn_queue);
+    cell = conn->src;
+    next_cell = conn->dest;
+    FreeMazeCellPair(conn);
+    /* Set distance */
+    dist = GetMazeCellProperty(cell, property) + 1;
+    if (dist > max_dist)
+    {
+      max_dist = dist;
+    }
+    SetMazeCellProperty(next_cell, property, dist);
+    /* Queue all neightbours */
+    cell = next_cell;
+    n = GetMazeCellNeighbourPoints(cell, poss);
+    for (i = 0; i < n; i++)
+    {
+      next_cell = GetMazeCell(maze, &poss[i]);
+      if (!next_cell) continue;
+      /* Skip nodes on the path */
+      if (GetMazeCellProperty(next_cell, property) > 0) continue;
+      conn = CreateMazeCellPair(cell, next_cell);
+      PushDequeLast(conn_queue, conn);
+    }
+  }
+  FreeDeque(conn_queue);
+  return max_dist;
 }
 
-bool_t ConnColorGen(void *ctx, maze_cell_t const *a, maze_cell_t const *b, rgb_t *color)
+static colorer_ctx_t *CreateColorerContextFromConfig(mazart_config_t const *config, mazart_maxes_t const *maxes)
 {
-  int64_t const *max_dist;
-  int64_t adist, bdist;
-  double frac;
-  if (!ctx || !a || !b || !color) return false;
-  max_dist = ctx;
-  adist = GetMazeCellProperty(a, kPathDistanceProperty);
-  bdist = GetMazeCellProperty(b, kPathDistanceProperty);
-  frac = ((double) (adist + bdist)) / ((double) (*max_dist * 2 + 1));
-  *color = (rgb_t) {
-    .red = 0,
-    .green = (uint8_t) (256.0 * (1.0 - frac)),
-    .blue = (uint8_t) (256.0 * frac)
-  };
-  return true;
+  maze_property_t property;
+  int64_t max;
+  if (!config || !maxes) return NULL;
+  switch (config->cell_color_metric)
+  {
+    case CLR_MTRC_PATH_DIST:
+      property = kPathDistanceProperty;
+      max = maxes->path_max;
+      break;
+    case CLR_MTRC_START_DIST:
+      property = kStartDistanceProperty;
+      max = maxes->start_max;
+      break;
+    case CLR_MTRC_END_DIST:
+      property = kEndDistanceProperty;
+      max = maxes->end_max;
+      break;
+    case CLR_MTRC_OTHER_DIST:
+      fprintf(stderr, "Warning: Cell \"other\" metric is not supported\n");
+      return NULL;
+    default:
+      return NULL;
+  }
+  switch (config->cell_color_mode)
+  {
+    case CLR_MODE_PALETTE:
+      return CreatePaletteGradientColorerContext(property, 0, max);
+    case CLR_MODE_PRESET_A:
+      return CreateGradientColorContext(&kPresetAStartColor, &kPresetAEndColor, property, 0, max);
+    case CLR_MODE_NONE:
+    default:
+      return NULL;
+  }
 }
 
-int main(int argc __unused, char **argv __unused)
+static void ConvertConfigToMazeImageConfig(mazart_config_t const *config, maze_image_config_t *img_config, mazart_maxes_t const *maxes)
 {
-  point_t *path;
+  if (!config || !img_config || !maxes) return;
+  DefaultMazeImageConfig(img_config);
+  img_config->cell_width = config->cell_width;
+  img_config->wall_width = config->wall_width;
+  img_config->border_width = config->border_width;
+  if (config->cell_color_mode != CLR_MODE_NONE)
+  {
+    colorer_ctx_t *ctx;
+    ctx = CreateColorerContextFromConfig(config, maxes);
+    if (!ctx)
+    {
+      fprintf(stderr,
+        "Warning: Problem occurred while creating colorer context\n");
+    }
+    ApplyColorerToMazeImageConfig(img_config, ctx);
+  }
+  else
+  {
+    MazartColorToColor(config->cell_color, &img_config->default_cell_color);
+    MazartColorToColor(config->conn_color, &img_config->default_conn_color);
+  }
+  MazartColorToColor(config->wall_color, &img_config->wall_color);
+  MazartColorToColor(config->border_color, &img_config->border_color);
+}
+
+static void ConvertConfigToMazeStartEnd(mazart_config_t const *config, point_t *start, point_t *end)
+{
+  if (start)
+  {
+    start->col = config->maze_width - 1;
+    start->row = 0;
+  }
+  if (end)
+  {
+    end->col = 0;
+    end->row = config->maze_height - 1;
+  }
+}
+
+static maze_t *CreateMazeFromConfig(mazart_config_t const *config)
+{
+  point_t start, end;
+  if (!config) return NULL;
+  ConvertConfigToMazeStartEnd(config, &start, &end);
+  return CreateMaze(config->maze_height, config->maze_width, &start, &end);
+}
+
+int main(int argc, char **argv)
+{
+  point_t start, end;
+  point_t *path = NULL;
   size_t path_length;
-  int64_t max_dist;
+  mazart_maxes_t maxes;
   maze_t *maze;
   maze_image_t *image;
-  maze_image_config_t config;
-  srand(2);
-  printf("Creating Maze... ");
-  maze = CreateMaze(kHeight, kWidth, &kStart, &kEnd);
-  printf("Done\n");
+  maze_image_config_t img_config;
+  mazart_config_t config;
 
-  printf("Computing maze path... ");
-  path = calloc(kWidth*kHeight+1, sizeof(point_t));
-  path_length = ComputeMazePath(maze, &kStart, &kEnd, path, kWidth*kHeight+1);
-  printf("Done\n");
+  if (!ParseMazartParameters((void*) argv, argc, &config))
+  {
+    return EXIT_FAILURE;
+  }
+  PrintMazartConfit(&config);
+
+  printf("Applying seed %lu\n", config.seed);
+  srand(config.seed);
+
+  printf("Creating Maze...\n");
+  maze = CreateMazeFromConfig(&config);
+
+  printf("Computing maze path...\n");
+  ConvertConfigToMazeStartEnd(&config, &start, &end);
+  path = calloc(config.maze_width * config.maze_height + 1, sizeof(point_t));
+  path_length = ComputeMazePath(maze,
+    &start, &end,
+    path, config.maze_width * config.maze_height + 1);
   printf("Path found, length = %lu\n", path_length);
 
-  printf("Finding max path distance... ");
-  max_dist = CountDistanceFromPath(maze, path, path_length);
-  printf("Done\n");
-  printf("Max distance from path is %ld\n", max_dist);
+  printf("Finding max path distance...\n");
+  maxes.path_max = CountDistanceFromPath(maze, path, path_length);
+  printf("Max distance from path is %ld\n", maxes.path_max);
 
-  printf("Converting maze to image... ");
-  DefaultMazeImageConfig(&config);
-  config.cell_width = 1;
-  config.wall_width = 0;
-  config.border_width = 10;
-  config.cell_color_gen = CellColorGen;
-  config.cell_color_ctx = &max_dist;
-  config.conn_color_gen = ConnColorGen;
-  config.conn_color_ctx = &max_dist;
-  image = CreateMazeImage(maze, &config);
-  printf("Done\n");
+  printf("Finding max distance from start...\n");
+  maxes.start_max = CountDistanceFromSource(maze, &start, kStartDistanceProperty);
+  printf("Max distance from start is %ld\n", maxes.start_max);
 
-  printf("Exporting unsolved maze... ");
-  ExportMazeImageToPNG(image, "maze.png");
-  printf("Done\n");
+  printf("Finding max distance from end...\n");
+  maxes.end_max = CountDistanceFromSource(maze, &end, kEndDistanceProperty);
+  printf("Max distance from end is %ld\n", maxes.end_max);
 
-  printf("Drawing solution on maze image... ");
-  DrawPathOnMazeImage(image, path, path_length, &kRed);
-  printf("Done\n");
+  printf("Converting maze to image...\n");
+  ConvertConfigToMazeImageConfig(&config, &img_config, &maxes);
+  image = CreateMazeImage(maze, &img_config);
 
-  printf("Exporting solved maze... ");
-  ExportMazeImageToPNG(image, "maze.sol.png");
-  printf("Done\n");
+  printf("Exporting maze to %s...\n", config.output_file);
+  ExportMazeImageToPNG(image, config.output_file);
 
   free(path);
+  FreeColorerContext(img_config.cell_color_ctx);
   FreeMazeImage(image);
   FreeMaze(maze);
 
