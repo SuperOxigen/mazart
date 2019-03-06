@@ -5,7 +5,7 @@
 #  See LICENSE for details.
 
 CC = gcc
-CFLAGS = -Wall -Wextra -std=c17 -g
+CFLAGS = -Wall -Wextra -std=c11 -g
 
 .PHONY: all clean
 
@@ -54,6 +54,6 @@ obj/maze_image.o: src/maze_image.c src/maze_image.h $(COMMON_HEADERS)
 
 bin/mazart.exe: src/main.c $(MAZART_OBJS)
 	@echo -n "[ CC ] "
-	$(CC) $(CFLAGS) -lpng -lm -o bin/mazart.exe src/main.c $(MAZART_OBJS)
+	$(CC) $(CFLAGS) -o bin/mazart.exe src/main.c $(MAZART_OBJS) -lpng -lm
 
 $(shell mkdir -p bin obj)  # Create output directories
