@@ -20,7 +20,7 @@ available for creating interesting image patterns.
 $ sudo pacman -S gcc make libpng
 ```
 
-*   For _most_ Ubuntu distributions
+*   For _most_ Debian distributions
 ```
 $ sudo apt-get install gcc make libpng-dev
 ```
