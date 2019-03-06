@@ -61,7 +61,7 @@ $ ./bin/mazart.exe --output basic.png
 ![alt text](examples/basic.sol.png)
 
 ```
-$ ./bin/mazart.exe --draw-path --output basic.png
+$ ./bin/mazart.exe --draw-path --output basic.sol.png
 ```
 
 *   Large maze, small details
@@ -105,8 +105,8 @@ Please see [LICENSE](LICENSE) for more details.
 
 ## Contributing and Feature Suggestions
 
-Part of my `TODO` is to create a proper `CONTRIBUTE.md` document.  Please
-stay tuned for this.
+Check out the [CONTRIBUTING.md](CONTRIBUTING.md) doc for information on how
+to contribute to the project.
 
 If you have suggestions for features that you think others would enjoy,
 please open an [issue](https://github.com/SuperOxigen/mazart/issues) on the
