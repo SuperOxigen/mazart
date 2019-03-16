@@ -968,6 +968,11 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
     if (StringsEqual(arg, kOutputFileFlag))
     {
       if (!IsFileName(value)) return false;
+      if (config->output_file)
+      {
+        /* Output file might be set multiple times. */
+        free((void*)config->output_file);
+      }
       config->output_file = ParseFileName(value);
       VAL_CONTINUE;
     }
