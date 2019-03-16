@@ -62,19 +62,19 @@ typedef struct {
   /* Randomizer config. */
   size_t seed;
   /* Image settings. */
+  /* Cell settings. */
   size_t cell_width;
-  size_t wall_width;
-  size_t border_width;
-  /* Cell color settings. */
   mazart_color_t cell_color;
   mazart_color_metric_t cell_color_metric;
   mazart_color_mode_t cell_color_mode;
   /* Conn color settings. */
   mazart_color_t conn_color;
   mazart_color_method_t conn_color_method;
-  /* Wall color. */
+  /* Wall settings. */
+  size_t wall_width;
   mazart_color_t wall_color;
-  /* Border color. */
+  /* Border settings. */
+  size_t border_width;
   mazart_color_t border_color;
   /* Solution path. */
   bool_t draw_path;

@@ -43,14 +43,6 @@ static size_t const kCellWidthMax = 64;
 static size_t const kCellWidthDefault = 4;
 static size_t const kCellWidthMin = 1;
 
-static char const kWallWidthFlag[] = "--wall-width";
-static size_t const kWallWidthDefault = 2;
-static size_t const kWallWidthMax = 16;
-
-static char const kBorderWidthFlag[] = "--border-width";
-static size_t const kBorderWidthDefault = 8;
-static size_t const kBorderWidthMax = 64;
-
 static char const kCellColorFlag[] = "--cell-color";
 static mazart_color_t const kCellColorDefault = CLR_WHITE;
 static char const kCellColorDefaultName[] = "white";
@@ -71,9 +63,17 @@ static char const kConnColorMethodFlag[] = "--conn-color-method";
 static mazart_color_method_t const kConnColorMethodDefault = CLR_MTHD_FIXED;
 static char const kConnColorMethodDefaultName[] = "fixed";
 
+static char const kWallWidthFlag[] = "--wall-width";
+static size_t const kWallWidthDefault = 2;
+static size_t const kWallWidthMax = 16;
+
 static char const kWallColorFlag[] = "--wall-color";
 static mazart_color_t const kWallColorDefault = CLR_BLACK;
 static char const kWallColorDefaultName[] = "black";
+
+static char const kBorderWidthFlag[] = "--border-width";
+static size_t const kBorderWidthDefault = 8;
+static size_t const kBorderWidthMax = 64;
 
 static char const kBorderColorFlag[] = "--boarder-color";
 static mazart_color_t const kBorderColorDefault = CLR_OTHER;
@@ -460,10 +460,6 @@ static void PrintUsage(char const *prog)
     "SEED", kSeedDefaultName);
   PrintRangedFlag(kCellWidthFlag, "Square side-length of maze cell in pixels.",
     "N", kCellWidthMin, kCellWidthMax, kCellWidthDefault);
-  PrintRangedFlag(kWallWidthFlag, "Thinkness maze walls in pixels.", "N",
-    0, kWallWidthMax, kWallWidthDefault);
-  PrintRangedFlag(kBorderWidthFlag, "Thinkness maze border in pixels.", "N",
-    0, kBorderWidthMax, kBorderWidthDefault);
   PrintFlag(kCellColorFlag,
     "Color of maze cell. Ignored with any other cell color setting.  "
     "See below for known colors.", kColor, kCellColorDefaultName);
@@ -486,10 +482,14 @@ static void PrintUsage(char const *prog)
     "Useful when using a cell color mode.  "
     "Ignored if maze wall thinkness is 0.",
     kColorMethod, kConnColorMethodDefaultName);
+  PrintRangedFlag(kWallWidthFlag, "Thinkness maze walls in pixels.", "N",
+    0, kWallWidthMax, kWallWidthDefault);
   PrintFlag(kWallColorFlag,
     "Color of maze walls.  "
     "Ignored if maze wall thinkness is 0.  "
     "See below for known colors.", kColor, kWallColorDefaultName);
+  PrintRangedFlag(kBorderWidthFlag, "Thinkness maze border in pixels.", "N",
+    0, kBorderWidthMax, kBorderWidthDefault);
   PrintFlag(kBorderColorFlag,
     "Color of maze border.  "
     "Ignored if maze border thinkness is 0.  "
@@ -691,14 +691,14 @@ void MazartDefaultParameters(mazart_config_t *config)
   config->maze_height = kMazeHeightDefault;
   config->seed = time(NULL);
   config->cell_width = kCellWidthDefault;
-  config->wall_width = kWallWidthDefault;
-  config->border_width = kBorderWidthDefault;
   config->cell_color = kCellColorDefault;
   config->cell_color_metric = kCellColorMetricDefault;
   config->cell_color_mode = kCellColorModeDefault;
   config->conn_color = kConnColorDefault;
   config->conn_color_method = kConnColorMethodDefault;
+  config->wall_width = kWallWidthDefault;
   config->wall_color = kWallColorDefault;
+  config->border_width = kBorderWidthDefault;
   config->border_color = kBorderColorDefault;
   config->path_color = kPathColorDefault;
 }
@@ -711,8 +711,6 @@ void PrintMazartConfit(mazart_config_t *config)
   printf("  \"maze_height\": %lu,\n", config->maze_height);
   printf("  \"seed\": %lu,\n", config->seed);
   printf("  \"cell_width\": %lu,\n", config->cell_width);
-  printf("  \"wall_width\": %lu,\n", config->wall_width);
-  printf("  \"border_width\": %lu,\n", config->border_width);
   if (config->cell_color != CLR_OTHER && config->cell_color != CLR_NONE)
   {
     printf("  \"cell_color\": \"%s\",\n", ColorToString(config->cell_color));
@@ -736,10 +734,12 @@ void PrintMazartConfit(mazart_config_t *config)
     printf("  \"conn_color_method\": \"%s\",\n",
       ColorMethodToString(config->conn_color_method));
   }
+  printf("  \"wall_width\": %lu,\n", config->wall_width);
   if (config->wall_color != CLR_OTHER && config->wall_color != CLR_NONE)
   {
     printf("  \"wall_color\": \"%s\",\n", ColorToString(config->wall_color));
   }
+  printf("  \"border_width\": %lu,\n", config->border_width);
   if (config->border_color != CLR_OTHER && config->border_color != CLR_NONE)
   {
     printf("  \"border_color\": \"%s\",\n", ColorToString(config->border_color));
@@ -900,18 +900,6 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
         GET_INTEGER_MAX_MIN(arg, value, kCellWidthFlag, kCellWidthMax, kCellWidthMin);
       VAL_CONTINUE;
     }
-    if (StringsEqual(arg, kWallWidthFlag))
-    {
-      config->wall_width =
-        GET_INTEGER_MAX(arg, value, kWallWidthFlag, kWallWidthMax);
-      VAL_CONTINUE;
-    }
-    if (StringsEqual(arg, kBorderWidthFlag))
-    {
-      config->border_width =
-        GET_INTEGER_MAX(arg, value, kBorderWidthFlag, kBorderWidthMax);
-      VAL_CONTINUE;
-    }
     if (StringsEqual(arg, kCellColorFlag))
     {
       config->cell_color =
@@ -942,10 +930,22 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
         GET_COLOR_METHOD(arg, value, kConnColorMethodFlag);
       VAL_CONTINUE;
     }
+    if (StringsEqual(arg, kWallWidthFlag))
+    {
+      config->wall_width =
+        GET_INTEGER_MAX(arg, value, kWallWidthFlag, kWallWidthMax);
+      VAL_CONTINUE;
+    }
     if (StringsEqual(arg, kWallColorFlag))
     {
       config->wall_color =
         GET_COLOR(arg, value, kWallColorFlag);
+      VAL_CONTINUE;
+    }
+    if (StringsEqual(arg, kBorderWidthFlag))
+    {
+      config->border_width =
+        GET_INTEGER_MAX(arg, value, kBorderWidthFlag, kBorderWidthMax);
       VAL_CONTINUE;
     }
     if (StringsEqual(arg, kBorderColorFlag))
