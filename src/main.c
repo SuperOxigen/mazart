@@ -272,7 +272,7 @@ int main(int argc, char **argv)
     return EXIT_FAILURE;
   }
   printf("Generating %lu x %lu maze, saving to %s\n",
-    config.maze_height, config.maze_width, config.output_file);
+    config.maze_width, config.maze_height, config.output_file);
   if (config.debug_mode) PrintMazartConfit(&config);
 
   if (config.debug_mode) printf("Applying seed %lu\n", config.seed);
