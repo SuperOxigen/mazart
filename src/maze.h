@@ -67,11 +67,11 @@ maze_cell_t *GetMazeCell(maze_t const *maze, point_t const *pos);
 maze_cell_t *GetMazeStartCell(maze_t const *maze);
 maze_cell_t *GetMazeEndCell(maze_t const *maze);
 
-/* Gets path from point A to B.  Returns 0 if no path exists. If A and
- * B are the same point, then 1 path element is returned.  All
+/* Gets path from src to dest.  Returns 0 if no path exists. If src and
+ * dest are the same point, then 1 path element is returned.  All
  * paramenters must be non-NULL. */
 size_t ComputeMazePath(
-  maze_t const *maze, point_t const *a, point_t const *b,
+  maze_t const *maze, point_t const *src, point_t const *dest,
   point_t *path, size_t max_path);
 
 /* - - Maze Cell - - */

@@ -31,11 +31,6 @@ static void ClearMazeConnections(maze_t *maze);
 /* Clears all Maze Cell's `visited` flag. */
 static void ClearMazeVisitedFlags(maze_t *maze);
 
-static size_t CrawlMazePath(
-  maze_t const *maze,
-  maze_cell_t *current, maze_cell_t *dest,
-  point_t *path, size_t path_idx, size_t max_path);
-
 /* - - Maze Cell Structure - - */
 
 struct maze_cell_st {
@@ -158,48 +153,44 @@ maze_cell_t *GetMazeEndCell(maze_t const *maze)
 }
 
 size_t ComputeMazePath(
-  maze_t const *maze, point_t const *a, point_t const *b,
+  maze_t const *maze, point_t const *src, point_t const *dest,
   point_t *path, size_t max_path)
 {
-  if (!maze || !a || !b || !path) return 0;
+  size_t pidx;
+  if (!maze || !src || !dest || !path || max_path == 0) return 0;
+  if (!GetMazeCell(maze, src) || !GetMazeCell(maze, dest)) return 0;
   ClearMazeVisitedFlags((maze_t*)maze);
-  return CrawlMazePath(
-    maze,
-    GetMazeCell(maze, a), GetMazeCell(maze, b),
-    path, 0, max_path);
-}
-
-/* - - Maze Internal API. - - */
-
-/* TODO: Rewrite algorithm to avaid recursion. */
-static size_t CrawlMazePath(
-  maze_t const *maze,
-  maze_cell_t *current, maze_cell_t *dest,
-  point_t *path, size_t path_idx, size_t max_path)
-{
-  point_t poss[4];
-  size_t n, i, res;
-  maze_cell_t *next;
-  if (path_idx >= max_path) return 0;
-  visit(current);
-  path[path_idx] = current->pos;
-  if (PointsEqual(&current->pos, &dest->pos))
+  pidx = 0;
+  path[pidx] = *src;
+  visit(GetMazeCell(maze, src));
+  while (!PointsEqual(&path[pidx], dest))
   {
-    return path_idx + 1;
+    point_t poss[4];
+    size_t n, i;
+    n = GetMazeCellNeighbourPoints(GetMazeCell(maze, &path[pidx]), poss);
+    for (i = 0; i < n; i++)
+    {
+      if (!GetMazeCell(maze, &poss[i])->visited) break;
+    }
+    if (i == n) /* No unvisted neighbor */
+    {
+      if (pidx == 0) break;
+      pidx--;
+      continue;
+    }
+    if ((pidx + 1) == max_path) break;
+    path[++pidx] = poss[i];
+    visit(GetMazeCell(maze, &poss[i]));
   }
-  n = GetMazeCellNeighbourPoints(current, poss);
-  for (i = 0; i < n; i++)
+
+  if (PointsEqual(&path[pidx], dest))
   {
-    next = GetMazeCell(maze, &poss[i]);
-    if (next->visited) continue;
-    res = CrawlMazePath(
-      maze,
-      next, dest,
-      path, path_idx + 1, max_path);
-    if (res > 0) return res;
+    return pidx + 1;
   }
   return 0;
 }
+
+/* - - Maze Internal API. - - */
 
 static void CrawlMazeDrawing(maze_t *maze, maze_cell_t *start)
 {
