@@ -56,8 +56,8 @@ static char const kCellColorModeDefault = CLR_MODE_NONE;
 static char const kCellColorModeDefaultName[] = "none";
 
 static char const kCellColorPaletteOffsetFlag[] = "--cell-palette-offset";
-static size_t const kCellColorPaletteOffsetDefault = 0;
-static char const kCellColorPaletteOffsetDefaultName[] = "0";
+
+static char const kCellColorPaletteReverseFlag[] = "--cell-palette-reverse";
 
 static char const kConnColorFlag[] = "--conn-color";
 static mazart_color_t const kConnColorDefault = CLR_LIGHT_GREY;
@@ -482,7 +482,10 @@ static void PrintUsage(char const *prog)
   PrintFlag(kCellColorPaletteOffsetFlag,
     "Offsets which color is used for a cell's metric.  "
     "Only valid for when using \"palette\" color mode",
-    "OFFSET", kCellColorPaletteOffsetDefaultName);
+    "OFFSET", NULL);
+  PrintFlag(kCellColorPaletteReverseFlag,
+    "Reverses the palette color order.  "
+    "Only valid for when using \"palette\" color mode", NULL, NULL);
 
   PrintFlag(kConnColorFlag,
     "Color of connection between maze cells.  "
@@ -708,7 +711,6 @@ void MazartDefaultParameters(mazart_config_t *config)
   config->cell_color = kCellColorDefault;
   config->cell_color_metric = kCellColorMetricDefault;
   config->cell_color_mode = kCellColorModeDefault;
-  config->cell_color_palette_offset = kCellColorPaletteOffsetDefault;
   config->conn_color = kConnColorDefault;
   config->conn_color_method = kConnColorMethodDefault;
   config->wall_width = kWallWidthDefault;
@@ -744,6 +746,8 @@ void PrintMazartConfit(mazart_config_t *config)
   {
     printf("  \"cell_color_palette_offset\": %lu,\n",
       config->cell_color_palette_offset);
+    printf("  \"cell_color_palette_reverse\": %s,\n",
+      config->cell_color_palette_reverse? "true" : "false");
   }
   if (config->conn_color != CLR_OTHER && config->conn_color != CLR_NONE)
   {
@@ -944,6 +948,11 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
         GET_INTEGER(arg, value, kCellColorPaletteOffsetFlag);
       VAL_CONTINUE;
     }
+    if (StringsEqual(arg, kCellColorPaletteReverseFlag))
+    {
+      config->cell_color_palette_reverse = true;
+      continue;
+    }
     if (StringsEqual(arg, kConnColorFlag))
     {
       config->conn_color =
@@ -1021,7 +1030,7 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
     fprintf(stderr, "Error: Color mode cannot be none if color metric is set\n");
     return false;
   }
-  if (config->cell_color_palette_offset != kCellColorPaletteOffsetDefault &&
+  if (config->cell_color_palette_offset != 0 &&
       config->cell_color_mode != CLR_MODE_PALETTE)
   {
     fprintf(stderr, "Warning: %s has not effect if color mode is not palette\n",

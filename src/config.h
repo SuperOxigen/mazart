@@ -68,6 +68,7 @@ typedef struct {
   mazart_color_metric_t cell_color_metric;
   mazart_color_mode_t cell_color_mode;
   size_t cell_color_palette_offset;
+  bool_t cell_color_palette_reverse;
   /* Conn color settings. */
   mazart_color_t conn_color;
   mazart_color_method_t conn_color_method;
