@@ -55,6 +55,10 @@ static char const kCellColorModeFlag[] = "--cell-mode";
 static char const kCellColorModeDefault = CLR_MODE_NONE;
 static char const kCellColorModeDefaultName[] = "none";
 
+static char const kCellColorPaletteOffsetFlag[] = "--cell-palette-offset";
+static size_t const kCellColorPaletteOffsetDefault = 0;
+static char const kCellColorPaletteOffsetDefaultName[] = "0";
+
 static char const kConnColorFlag[] = "--conn-color";
 static mazart_color_t const kConnColorDefault = CLR_LIGHT_GREY;
 static char const kConnColorDefaultName[] = "light-grey";
@@ -454,12 +458,14 @@ static void PrintUsage(char const *prog)
     kMazeWidthMin, kMazeWidthMax, kMazeWidthDefault);
   PrintRangedFlag(kMazeHeightFlag, "Number of cells per maze column.", "M",
     kMazeHeightMin, kMazeHeightMax, kMazeHeightDefault);
+
   PrintFlag(kSeedFlag,
     "Value used to be seed the random number generator used.  "
     "Can be a positive integer or \"time\" to use system time.",
     "SEED", kSeedDefaultName);
   PrintRangedFlag(kCellWidthFlag, "Square side-length of maze cell in pixels.",
     "N", kCellWidthMin, kCellWidthMax, kCellWidthDefault);
+
   PrintFlag(kCellColorFlag,
     "Color of maze cell. Ignored with any other cell color setting.  "
     "See below for known colors.", kColor, kCellColorDefaultName);
@@ -473,6 +479,11 @@ static void PrintUsage(char const *prog)
     "Only valid if cell color metric is set.  "
     "See below for known color modes.",
     kColorMode, kCellColorModeDefaultName);
+  PrintFlag(kCellColorPaletteOffsetFlag,
+    "Offsets which color is used for a cell's metric.  "
+    "Only valid for when using \"palette\" color mode",
+    "OFFSET", kCellColorPaletteOffsetDefaultName);
+
   PrintFlag(kConnColorFlag,
     "Color of connection between maze cells.  "
     "Ignored with any cell coloring mode set, or if maze wall thinkness is 0.  "
@@ -482,12 +493,14 @@ static void PrintUsage(char const *prog)
     "Useful when using a cell color mode.  "
     "Ignored if maze wall thinkness is 0.",
     kColorMethod, kConnColorMethodDefaultName);
+
   PrintRangedFlag(kWallWidthFlag, "Thinkness maze walls in pixels.", "N",
     0, kWallWidthMax, kWallWidthDefault);
   PrintFlag(kWallColorFlag,
     "Color of maze walls.  "
     "Ignored if maze wall thinkness is 0.  "
     "See below for known colors.", kColor, kWallColorDefaultName);
+
   PrintRangedFlag(kBorderWidthFlag, "Thinkness maze border in pixels.", "N",
     0, kBorderWidthMax, kBorderWidthDefault);
   PrintFlag(kBorderColorFlag,
@@ -495,6 +508,7 @@ static void PrintUsage(char const *prog)
     "Ignored if maze border thinkness is 0.  "
     "See below for known colors.",
     kColor, kBorderColorDefaultName);
+
   PrintFlag(kDrawPathFlag,
     "Draws a solution path from the top right corner to the bottom left.",
     NULL, NULL);
@@ -694,6 +708,7 @@ void MazartDefaultParameters(mazart_config_t *config)
   config->cell_color = kCellColorDefault;
   config->cell_color_metric = kCellColorMetricDefault;
   config->cell_color_mode = kCellColorModeDefault;
+  config->cell_color_palette_offset = kCellColorPaletteOffsetDefault;
   config->conn_color = kConnColorDefault;
   config->conn_color_method = kConnColorMethodDefault;
   config->wall_width = kWallWidthDefault;
@@ -724,6 +739,11 @@ void PrintMazartConfit(mazart_config_t *config)
   {
     printf("  \"cell_color_mode\": \"%s\",\n",
       ColorModeToString(config->cell_color_mode));
+  }
+  if (config->cell_color_mode == CLR_MODE_PALETTE)
+  {
+    printf("  \"cell_color_palette_offset\": %lu,\n",
+      config->cell_color_palette_offset);
   }
   if (config->conn_color != CLR_OTHER && config->conn_color != CLR_NONE)
   {
@@ -918,6 +938,12 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
         GET_COLOR_MODE(arg, value, kCellColorModeFlag);
       VAL_CONTINUE;
     }
+    if (StringsEqual(arg, kCellColorPaletteOffsetFlag))
+    {
+      config->cell_color_palette_offset =
+        GET_INTEGER(arg, value, kCellColorPaletteOffsetFlag);
+      VAL_CONTINUE;
+    }
     if (StringsEqual(arg, kConnColorFlag))
     {
       config->conn_color =
@@ -994,6 +1020,12 @@ bool_t ParseMazartParameters(char const * const *args, size_t arg_count, mazart_
   {
     fprintf(stderr, "Error: Color mode cannot be none if color metric is set\n");
     return false;
+  }
+  if (config->cell_color_palette_offset != kCellColorPaletteOffsetDefault &&
+      config->cell_color_mode != CLR_MODE_PALETTE)
+  {
+    fprintf(stderr, "Warning: %s has not effect if color mode is not palette\n",
+      kCellColorPaletteOffsetFlag);
   }
   if (!config->output_file)
   {
