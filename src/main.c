@@ -171,6 +171,7 @@ static int64_t CountDistanceFromSource(maze_t const *maze, point_t const *source
 
 static colorer_ctx_t *CreateColorerContextFromConfig(mazart_config_t const *config, mazart_maxes_t const *maxes)
 {
+  colorer_ctx_t *ctx;
   maze_property_t property;
   int64_t max;
   if (!config || !maxes) return NULL;
@@ -197,7 +198,12 @@ static colorer_ctx_t *CreateColorerContextFromConfig(mazart_config_t const *conf
   switch (config->cell_color_mode)
   {
     case CLR_MODE_PALETTE:
-      return CreatePaletteGradientColorerContext(property, 0, max);
+      ctx = CreatePaletteGradientColorerContext(property, 0, max);
+      if (config->cell_color_palette_offset > 0)
+        SetPaletteColorerOffset(ctx, config->cell_color_palette_offset);
+      if (config->cell_color_palette_reverse)
+        SetPaletteColorerReverse(ctx, true);
+      return ctx;
     case CLR_MODE_PRESET_A:
       return CreateGradientColorContext(&kPresetAStartColor, &kPresetAEndColor, property, 0, max);
     case CLR_MODE_NONE:
