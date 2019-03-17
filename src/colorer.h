@@ -31,6 +31,9 @@ colorer_ctx_t *CreateGradientColorContext(
 
 void FreeColorerContext(colorer_ctx_t *ctx);
 
+void SetPaletteColorerOffset(colorer_ctx_t *ctx, size_t offset);
+void SetPaletteColorerReverse(colorer_ctx_t *ctx, bool_t reverse);
+
 bool_t ApplyColorerToMazeImageConfig(
   maze_image_config_t *config, colorer_ctx_t *ctx);
 

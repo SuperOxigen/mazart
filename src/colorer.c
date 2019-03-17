@@ -28,6 +28,8 @@ struct colorer_ctx_st {
   int64_t max;
   rgb_t start_color;
   rgb_t end_color;
+  size_t palette_offset;
+  bool_t palette_reverse;
 };
 
 static rgb_t const kColorPalette[] = {
@@ -84,6 +86,20 @@ void FreeColorerContext(colorer_ctx_t *ctx)
   free(ctx);
 }
 
+void SetPaletteColorerOffset(colorer_ctx_t *ctx, size_t offset)
+{
+  if (!ctx) return;
+  if (ctx->type != CLRR_PALETTE && ctx->type != CLRR_PALETTE_GRADIENT) return;
+  ctx->palette_offset = offset;
+}
+
+void SetPaletteColorerReverse(colorer_ctx_t *ctx, bool_t reverse)
+{
+  if (!ctx) return;
+  if (ctx->type != CLRR_PALETTE && ctx->type != CLRR_PALETTE_GRADIENT) return;
+  ctx->palette_reverse = reverse;
+}
+
 bool_t ApplyColorerToMazeImageConfig(
   maze_image_config_t *config, colorer_ctx_t *ctx)
 {
@@ -104,17 +120,31 @@ bool_t CellColorer(void *vctx, maze_cell_t const *cell, rgb_t *color)
   prop_value = GetMazeCellProperty(cell, ctx->property);
   if (ctx->type == CLRR_PALETTE)
   {
+    size_t pidx;
     if (prop_value < 0) return false;
-    *color = kColorPalette[prop_value & kColorPaletteSize];
+    pidx = (prop_value + ctx->palette_offset) % kColorPaletteSize;
+    if (ctx->palette_reverse)
+    {
+      pidx = kColorPaletteSize - pidx - 1;
+    }
+    *color = kColorPalette[pidx];
     return true;
   }
   if (ctx->type == CLRR_PALETTE_GRADIENT)
   {
     double frac;
+    size_t pidx;
     if (prop_value > ctx->max) frac = ((double) (ctx->max - ctx->min)) / ((double) (ctx->max - ctx->min + 1));
     else if (prop_value < ctx->min) frac = 0.0;
     else frac = ((double) (prop_value - ctx->min)) / ((double) (ctx->max - ctx->min + 1));
-    *color = kColorPalette[(size_t) (((double) kColorPaletteSize) * frac)];
+    pidx = (
+      ((size_t) (((double) kColorPaletteSize) * frac))
+       + ctx->palette_offset) % kColorPaletteSize;
+    if (ctx->palette_reverse)
+    {
+      pidx = kColorPaletteSize - pidx - 1;
+    }
+    *color = kColorPalette[pidx];
     return true;
   }
   if (ctx->type == CLRR_GRADIENT)
